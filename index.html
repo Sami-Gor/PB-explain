@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pocket Brain Architecture Explainer</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --text: #142229;
+        --muted: #63757d;
+        --line: #dbe8eb;
+        --line-strong: #c6dbdf;
+        --accent: #00b7c7;
+        --accent-soft: rgba(0, 183, 199, 0.06);
+        --accent-mid: rgba(0, 183, 199, 0.14);
+        --accent-ink: rgba(0, 183, 199, 0.78);
+        --figure-ink: rgba(20, 34, 41, 0.22);
+        --content: 1240px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      img,
+      svg {
+        display: block;
+        max-width: 100%;
+      }
+
+      .page {
+        max-width: var(--content);
+        margin: 0 auto;
+        padding: 0 32px 96px;
+      }
+
+      .hero {
+        padding: 92px 0 58px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow,
+      .section-index,
+      .figure-label,
+      .legend-label {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--accent);
+      }
+
+      .hero h1 {
+        margin: 10px 0 0;
+        max-width: 7ch;
+        font-size: clamp(3.6rem, 8vw, 6.8rem);
+        line-height: 0.9;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+      }
+
+      .hero p {
+        max-width: 34rem;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: clamp(1rem, 1.8vw, 1.16rem);
+        line-height: 1.76;
+      }
+
+      .stage {
+        display: grid;
+        grid-template-columns: minmax(0, 0.84fr) minmax(340px, 1fr);
+        gap: 64px;
+        align-items: start;
+        padding-top: 24px;
+      }
+
+      .sections {
+        min-width: 0;
+      }
+
+      .section {
+        min-height: 92vh;
+        padding: 17vh 0 20vh;
+        border-top: 1px solid var(--line);
+        scroll-margin-top: 72px;
+      }
+
+      .section:first-child {
+        border-top: 0;
+        padding-top: 10vh;
+      }
+
+      .section-inner {
+        max-width: 29rem;
+        opacity: 0.32;
+        transform: translateY(18px);
+        transition: opacity 720ms ease, transform 720ms ease;
+      }
+
+      .section.is-active .section-inner {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .section h2 {
+        margin: 12px 0 0;
+        font-size: clamp(2.1rem, 3.7vw, 3.4rem);
+        line-height: 0.98;
+        font-weight: 680;
+        letter-spacing: -0.05em;
+      }
+
+      .section p {
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.9;
+      }
+
+      .section-rule {
+        width: 88px;
+        height: 1px;
+        margin-top: 28px;
+        background: var(--line-strong);
+      }
+
+      .section-note {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 0.84rem;
+        letter-spacing: 0.02em;
+      }
+
+      .visual-rail {
+        position: sticky;
+        top: 26px;
+      }
+
+      .figure-shell {
+        min-height: calc(100vh - 52px);
+        padding-top: 8px;
+      }
+
+      .figure-head {
+        margin-bottom: 16px;
+      }
+
+      .figure-head h3 {
+        margin: 8px 0 0;
+        max-width: 12ch;
+        font-size: clamp(1.46rem, 2.4vw, 2.05rem);
+        line-height: 1;
+        font-weight: 650;
+        letter-spacing: -0.035em;
+      }
+
+      .figure-head p {
+        max-width: 24rem;
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.68;
+      }
+
+      .figure-card {
+        position: relative;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+
+      .figure-card::before {
+        content: "";
+        position: absolute;
+        inset: 64px 6% auto 6%;
+        height: 72%;
+        background: radial-gradient(circle at 50% 36%, rgba(0, 183, 199, 0.035), transparent 34%);
+        pointer-events: none;
+      }
+
+      .figure-wrap {
+        position: relative;
+      }
+
+      .diagram {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        overflow: visible;
+      }
+
+      .diagram [data-role="connector"],
+      .diagram [data-role="node"] {
+        transition:
+          opacity 760ms ease,
+          fill 760ms ease,
+          stroke 760ms ease,
+          transform 760ms ease;
+      }
+
+      .node .node-card,
+      .node .node-anchor,
+      .node .node-stem,
+      .node .core-disc,
+      .node .core-orbit {
+        transition: fill 760ms ease, stroke 760ms ease;
+      }
+
+      .connector {
+        fill: none;
+        stroke: var(--figure-ink);
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        marker-end: url(#arrowhead);
+        opacity: 0.2;
+      }
+
+      .connector.is-related {
+        opacity: 0.34;
+      }
+
+      .connector.is-active {
+        opacity: 0.96;
+        stroke: var(--accent-ink);
+      }
+
+      .node {
+        opacity: 0.22;
+      }
+
+      .node.is-related {
+        opacity: 0.54;
+      }
+
+      .node.is-active {
+        opacity: 1;
+      }
+
+      .node-card {
+        fill: rgba(255, 255, 255, 0.92);
+        stroke: rgba(198, 219, 223, 0.96);
+        stroke-width: 1.15;
+      }
+
+      .node-core .core-orbit {
+        fill: none;
+        stroke: rgba(0, 183, 199, 0.16);
+        stroke-width: 1.15;
+      }
+
+      .node-core .core-disc {
+        fill: rgba(0, 183, 199, 0.05);
+        stroke: rgba(0, 183, 199, 0.4);
+        stroke-width: 1.3;
+      }
+
+      .node-device .node-anchor {
+        fill: #ffffff;
+        stroke: rgba(198, 219, 223, 0.98);
+        stroke-width: 1.25;
+      }
+
+      .node-device .node-stem {
+        fill: none;
+        stroke: rgba(198, 219, 223, 0.92);
+        stroke-width: 1.1;
+      }
+
+      .node.is-active .node-card,
+      .node.is-active .node-anchor,
+      .node.is-active .node-stem {
+        stroke: var(--accent-ink);
+      }
+
+      .node-core.is-active .core-disc {
+        fill: rgba(0, 183, 199, 0.075);
+        stroke: var(--accent-ink);
+      }
+
+      .node-core.is-active .core-orbit {
+        stroke: rgba(0, 183, 199, 0.24);
+      }
+
+      .node-kicker {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .node-title {
+        fill: var(--text);
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+      }
+
+      .node-core .node-title {
+        font-size: 28px;
+      }
+
+      .node-copy {
+        fill: var(--muted);
+        font-size: 12px;
+      }
+
+      .figure-legend {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+
+      .figure-legend h4 {
+        margin: 8px 0 0;
+        font-size: 1rem;
+        font-weight: 620;
+        letter-spacing: -0.01em;
+      }
+
+      .figure-legend p {
+        max-width: 24rem;
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.78;
+      }
+
+      .figure-source {
+        max-width: 24rem;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.7;
+      }
+
+      @media (max-width: 980px) {
+        .page {
+          padding: 0 18px 72px;
+        }
+
+        .hero {
+          padding: 70px 0 48px;
+        }
+
+        .stage {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+
+        .visual-rail {
+          position: relative;
+          top: auto;
+          order: -1;
+        }
+
+        .figure-shell {
+          min-height: auto;
+        }
+
+        .section {
+          min-height: auto;
+          padding: 86px 0;
+        }
+
+        .section:first-child {
+          padding-top: 22px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero h1 {
+          max-width: none;
+        }
+
+        .section h2,
+        .figure-head h3 {
+          font-size: clamp(1.9rem, 8vw, 2.6rem);
+        }
+
+        .node-title {
+          font-size: 18px;
+        }
+
+        .node-core .node-title {
+          font-size: 24px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .section-inner,
+        .diagram [data-role="connector"],
+        .diagram [data-role="node"] {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Architecture explainer</p>
+        <h1>Pocket Brain</h1>
+        <p>
+          A local cognitive system that stays with its user.
+        </p>
+      </header>
+
+      <section class="stage" aria-label="Pocket Brain architecture explainer">
+        <div class="sections">
+          <article class="section is-active" data-step="device">
+            <div class="section-inner">
+              <p class="section-index">01 · Device → Pocket Brain</p>
+              <h2>The system begins at the device.</h2>
+              <p>
+                The device is the first point of contact.
+                It keeps the system close to its user.
+                Pocket Brain begins from local presence, not remote abstraction.
+              </p>
+              <div class="section-rule"></div>
+              <p class="section-note">The device is the surface. Pocket Brain is the core that persists behind it.</p>
+            </div>
+          </article>
+
+          <article class="section" data-step="continuity">
+            <div class="section-inner">
+              <p class="section-index">02 · Continuity Layer → Pocket Brain</p>
+              <h2>Continuity keeps the system from starting over.</h2>
+              <p>
+                A personal system has to survive breakage, migration, and return.
+                The continuity layer carries state forward, so the person does not have to rebuild it by hand.
+              </p>
+              <div class="section-rule"></div>
+              <p class="section-note">Continuity is not a second brain. It is what lets one brain persist.</p>
+            </div>
+          </article>
+
+          <article class="section" data-step="inference">
+            <div class="section-inner">
+              <p class="section-index">03 · Inference → Pocket Brain</p>
+              <h2>Inference stays close to the core.</h2>
+              <p>
+                Inference stays close to the core.
+                It helps the system make sense of input without leaving the local structure.
+              </p>
+              <div class="section-rule"></div>
+              <p class="section-note">Inference supports the core without becoming a separate system.</p>
+            </div>
+          </article>
+
+          <article class="section" data-step="core">
+            <div class="section-inner">
+              <p class="section-index">04 · Pocket Brain Core</p>
+              <h2>The core gathers the system into one durable structure.</h2>
+              <p>
+                In the end, the figure resolves into one local center. Device, continuity, and
+                inference are held together by Pocket Brain. That is where these relations become
+                one personal cognitive system.
+              </p>
+              <div class="section-rule"></div>
+              <p class="section-note">The core is not a screen. It is the structure that ties the other layers together.</p>
+            </div>
+          </article>
+        </div>
+
+        <aside class="visual-rail">
+          <div class="figure-shell">
+            <div class="figure-head">
+              <p class="figure-label">Figure 1</p>
+              <h3 id="figure-title">Device and core, shown as a local relation.</h3>
+              <p id="figure-summary">
+                The figure stays fixed while the text advances. Each section shifts one relation.
+              </p>
+            </div>
+
+            <div class="figure-card">
+              <div class="figure-wrap">
+                <svg class="diagram" viewBox="0 0 760 720" role="img" aria-labelledby="diagram-title-svg diagram-desc-svg">
+                  <title id="diagram-title-svg">Pocket Brain architecture figure</title>
+                  <desc id="diagram-desc-svg">
+                    A semantic architecture diagram with Device, Continuity Layer, Inference,
+                    and Pocket Brain connected through directional links.
+                  </desc>
+
+                  <defs>
+                    <marker
+                      id="arrowhead"
+                      markerWidth="12"
+                      markerHeight="12"
+                      refX="9"
+                      refY="5"
+                      orient="auto"
+                      markerUnits="strokeWidth"
+                    >
+                      <path d="M0 0L9 5L0 10" fill="none" stroke="context-stroke" stroke-width="1.15"></path>
+                    </marker>
+                  </defs>
+
+                  <path
+                    data-role="connector"
+                    data-connector="device-core"
+                    class="connector"
+                    d="M170 272C214 266 246 267 272 279"
+                  ></path>
+
+                  <path
+                    data-role="connector"
+                    data-connector="continuity-core"
+                    class="connector"
+                    d="M292 528C316 482 334 438 331 409"
+                  ></path>
+
+                  <path
+                    data-role="connector"
+                    data-connector="inference-core"
+                    class="connector"
+                    d="M468 528C444 482 426 438 429 409"
+                  ></path>
+
+                  <g data-role="node" data-node="device" class="node node-device">
+                    <rect class="node-card" x="42" y="234" width="118" height="70" rx="16" fill-opacity="0.68" stroke-opacity="0.84"></rect>
+                    <path class="node-stem" d="M160 272C164 272 167 272 170 272"></path>
+                    <text class="node-kicker" x="54" y="249">Entry point</text>
+                    <text class="node-title" x="54" y="274">Device</text>
+                    <text class="node-copy" x="54" y="295">Local surface</text>
+                  </g>
+
+                  <g data-role="node" data-node="core" class="node node-core">
+                    <circle class="core-orbit" cx="380" cy="308" r="112"></circle>
+                    <circle class="core-disc" cx="380" cy="308" r="76"></circle>
+                    <text class="node-kicker" x="380" y="268" text-anchor="middle">Personal cognitive system</text>
+                    <text class="node-title" x="380" y="317" text-anchor="middle">Pocket Brain</text>
+                    <text class="node-copy" x="380" y="342" text-anchor="middle">Local core</text>
+                  </g>
+
+                  <g data-role="node" data-node="continuity" class="node">
+                    <rect class="node-card" x="164" y="528" width="212" height="92" rx="18"></rect>
+                    <text class="node-kicker" x="270" y="562" text-anchor="middle">State across time</text>
+                    <text class="node-title" x="270" y="590" text-anchor="middle">Continuity Layer</text>
+                    <text class="node-copy" x="270" y="610" text-anchor="middle">Backup and recovery</text>
+                  </g>
+
+                  <g data-role="node" data-node="inference" class="node">
+                    <rect class="node-card" x="384" y="528" width="212" height="92" rx="18"></rect>
+                    <text class="node-kicker" x="490" y="562" text-anchor="middle">Making sense</text>
+                    <text class="node-title" x="490" y="590" text-anchor="middle">Inference</text>
+                    <text class="node-copy" x="490" y="610" text-anchor="middle">Local reasoning</text>
+                  </g>
+                </svg>
+              </div>
+
+              <div class="figure-legend">
+                <p class="legend-label">Figure note</p>
+                <h4 id="legend-title">Device</h4>
+                <p id="legend-body">
+                  The device is shown lightly, as the first visible surface of the system rather
+                  than the system itself.
+                </p>
+              </div>
+
+              <p class="figure-source">
+                Rebuilt from the supplied architecture artwork as a semantic SVG for section-based emphasis.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const figureTitle = document.getElementById("figure-title");
+      const figureSummary = document.getElementById("figure-summary");
+      const legendTitle = document.getElementById("legend-title");
+      const legendBody = document.getElementById("legend-body");
+
+      const sections = Array.from(document.querySelectorAll(".section"));
+
+      const nodes = Object.fromEntries(
+        Array.from(document.querySelectorAll("[data-node]")).map((element) => [element.dataset.node, element])
+      );
+
+      const connectors = Object.fromEntries(
+        Array.from(document.querySelectorAll("[data-connector]")).map((element) => [element.dataset.connector, element])
+      );
+
+      const stateMap = {
+        device: {
+          title: "Device and core, shown as a local relation.",
+          summary:
+            "The device-to-core path shows where the system begins: close to the person using it.",
+          legendTitle: "Device",
+          legendBody:
+            "The device is the local surface of the system. It keeps first contact physically close.",
+          activeNodes: ["device", "core"],
+          relatedNodes: ["continuity", "inference"],
+          activeConnectors: ["device-core"],
+          relatedConnectors: ["continuity-core", "inference-core"]
+        },
+        continuity: {
+          title: "Continuity is drawn as support for persistence.",
+          summary:
+            "The lower-left layer carries state forward. It sits outside the core, but remains attached to it.",
+          legendTitle: "Continuity Layer",
+          legendBody:
+            "Continuity preserves accumulated state through migration, repair, and return.",
+          activeNodes: ["continuity", "core"],
+          relatedNodes: ["device", "inference"],
+          activeConnectors: ["continuity-core"],
+          relatedConnectors: ["device-core", "inference-core"]
+        },
+        inference: {
+          title: "Inference stays near the architecture it serves.",
+          summary:
+            "The lower-right layer stays adjacent to Pocket Brain, placing inference inside the same local structure.",
+          legendTitle: "Inference",
+          legendBody:
+            "Inference gives the core a local way to read input without displacing it.",
+          activeNodes: ["inference", "core"],
+          relatedNodes: ["device", "continuity"],
+          activeConnectors: ["inference-core"],
+          relatedConnectors: ["device-core", "continuity-core"]
+        },
+        core: {
+          title: "Pocket Brain holds the figure together.",
+          summary:
+            "In the final state, the three incoming relations stay visible and the core holds the figure together.",
+          legendTitle: "Pocket Brain Core",
+          legendBody:
+            "Pocket Brain is the durable center of the system: local, cumulative, and supported by continuity and inference.",
+          activeNodes: ["core"],
+          relatedNodes: ["device", "continuity", "inference"],
+          activeConnectors: ["device-core", "continuity-core", "inference-core"],
+          relatedConnectors: []
+        }
+      };
+
+      function resetFigure() {
+        Object.values(nodes).forEach((element) => {
+          element.classList.remove("is-active", "is-related");
+        });
+
+        Object.values(connectors).forEach((element) => {
+          element.classList.remove("is-active", "is-related");
+        });
+      }
+
+      function applyState(stepKey) {
+        const state = stateMap[stepKey];
+        if (!state) return;
+
+        figureTitle.textContent = state.title;
+        figureSummary.textContent = state.summary;
+        legendTitle.textContent = state.legendTitle;
+        legendBody.textContent = state.legendBody;
+
+        resetFigure();
+
+        state.activeNodes.forEach((key) => nodes[key] && nodes[key].classList.add("is-active"));
+        state.relatedNodes.forEach((key) => nodes[key] && nodes[key].classList.add("is-related"));
+
+        state.activeConnectors.forEach((key) => connectors[key] && connectors[key].classList.add("is-active"));
+        state.relatedConnectors.forEach((key) =>
+          connectors[key] && connectors[key].classList.add("is-related")
+        );
+
+        sections.forEach((section) => {
+          section.classList.toggle("is-active", section.dataset.step === stepKey);
+        });
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visibleEntries = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+          if (!visibleEntries.length) return;
+          applyState(visibleEntries[0].target.dataset.step);
+        },
+        {
+          threshold: [0.4, 0.6, 0.8],
+          rootMargin: "-20% 0px -28% 0px"
+        }
+      );
+
+      sections.forEach((section) => observer.observe(section));
+      applyState("device");
+    </script>
+  </body>
+</html>
