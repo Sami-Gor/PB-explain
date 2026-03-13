@@ -1,0 +1,1126 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Pocket Brain is a personal AI device designed to run on hardware you own, with privacy, continuity, and inference held together in one durable personal system."
+    />
+    <meta name="color-scheme" content="light" />
+    <title>Pocket Brain Architecture Explainer</title>
+    <style>
+      :root {
+        --pb-bg: #ffffff;
+        --pb-surface: #ffffff;
+        --pb-surface-soft: #f7fafb;
+        --pb-text: #16242a;
+        --pb-muted: #5d7078;
+        --pb-line: #d9e5e8;
+        --pb-line-strong: #c7d8dd;
+        --pb-accent: #0d7d88;
+        --pb-accent-soft: rgba(13, 125, 136, 0.08);
+        --pb-accent-mid: rgba(13, 125, 136, 0.16);
+        --pb-accent-strong: rgba(13, 125, 136, 0.8);
+        --pb-figure-ink: rgba(22, 36, 42, 0.24);
+        --pb-shadow: 0 18px 48px rgba(22, 36, 42, 0.08);
+        --pb-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+        --pb-motion-fast: 320ms;
+        --pb-motion-base: 420ms;
+        --pb-motion-slow: 480ms;
+        --pb-page-max: 1160px;
+        --pb-copy-max: 33rem;
+        --pb-sans:
+          "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+        --pb-serif:
+          Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, Times New Roman, serif;
+      }
+
+      html {
+        background: var(--pb-bg);
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        background: var(--pb-bg);
+        color: var(--pb-text);
+        font-family: var(--pb-sans);
+      }
+
+      #pb-explainer,
+      #pb-explainer * {
+        box-sizing: border-box;
+      }
+
+      #pb-explainer {
+        position: relative;
+        isolation: isolate;
+        width: min(100%, var(--pb-page-max));
+        margin: 0 auto;
+        padding: 0 clamp(16px, 4vw, 40px) clamp(48px, 7vw, 84px);
+        color: var(--pb-text);
+        font-family: var(--pb-sans);
+      }
+
+      #pb-explainer :where(h1, h2, h3, h4, p, li) {
+        overflow-wrap: anywhere;
+      }
+
+      #pb-explainer :where(h1, h2, h3, h4, p) {
+        margin: 0;
+      }
+
+      #pb-explainer svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+      }
+
+      #pb-explainer .hero {
+        padding: clamp(40px, 7vw, 88px) 0 clamp(26px, 4vw, 44px);
+        border-bottom: 1px solid var(--pb-line);
+      }
+
+      #pb-explainer .eyebrow,
+      #pb-explainer .section-index,
+      #pb-explainer .figure-label,
+      #pb-explainer .legend-label {
+        color: var(--pb-muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      #pb-explainer .eyebrow {
+        color: var(--pb-accent);
+      }
+
+      #pb-explainer .hero h1 {
+        margin-top: 12px;
+        max-width: 7ch;
+        font-family: var(--pb-serif);
+        font-size: clamp(3.15rem, 8vw, 6.35rem);
+        line-height: 0.92;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+      }
+
+      #pb-explainer .hero p {
+        max-width: 40rem;
+      }
+
+      #pb-explainer .hero .hero-copy {
+        margin-top: 18px;
+        color: var(--pb-muted);
+        font-size: clamp(1rem, 1.7vw, 1.14rem);
+        line-height: 1.8;
+      }
+
+      #pb-explainer .hero .hero-audience {
+        margin-top: 10px;
+        color: var(--pb-muted);
+        font-size: 0.95rem;
+        line-height: 1.7;
+        font-style: italic;
+      }
+
+      #pb-explainer .stage-shell {
+        padding-top: clamp(24px, 3vw, 34px);
+      }
+
+      #pb-explainer .step-nav {
+        margin-bottom: clamp(18px, 2vw, 24px);
+      }
+
+      #pb-explainer .step-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      #pb-explainer .step-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 10px 14px;
+        border: 1px solid var(--pb-line);
+        border-radius: 999px;
+        background: var(--pb-surface);
+        color: var(--pb-muted);
+        font: 700 0.82rem/1 var(--pb-sans);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition:
+          border-color var(--pb-motion-fast) var(--pb-ease-soft),
+          background-color var(--pb-motion-fast) var(--pb-ease-soft),
+          color var(--pb-motion-fast) var(--pb-ease-soft);
+      }
+
+      #pb-explainer .step-pill:hover,
+      #pb-explainer .step-pill:focus-visible {
+        border-color: rgba(13, 125, 136, 0.34);
+        background: var(--pb-accent-soft);
+        color: var(--pb-text);
+        outline: none;
+      }
+
+      #pb-explainer .step-pill.is-active,
+      #pb-explainer .step-pill[aria-current="step"] {
+        border-color: rgba(13, 125, 136, 0.34);
+        background: var(--pb-accent-soft);
+        color: var(--pb-text);
+      }
+
+      #pb-explainer .stage {
+        display: grid;
+        gap: clamp(24px, 3vw, 44px);
+        align-items: start;
+      }
+
+      #pb-explainer .sections,
+      #pb-explainer .figure-column {
+        min-width: 0;
+      }
+
+      #pb-explainer .section {
+        padding: clamp(34px, 6vw, 60px) 0;
+        border-top: 1px solid var(--pb-line);
+        scroll-margin-top: 18px;
+      }
+
+      #pb-explainer .section:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      #pb-explainer .section-copy {
+        max-width: var(--pb-copy-max);
+      }
+
+      #pb-explainer .section h2 {
+        margin-top: 12px;
+        font-family: var(--pb-serif);
+        font-size: clamp(1.95rem, 4vw, 3.25rem);
+        line-height: 0.98;
+        font-weight: 700;
+        letter-spacing: -0.045em;
+      }
+
+      #pb-explainer .section p {
+        margin-top: 18px;
+        color: var(--pb-muted);
+        font-size: 1rem;
+        line-height: 1.84;
+      }
+
+      #pb-explainer .figure-column {
+        order: -1;
+      }
+
+      #pb-explainer .figure-panel {
+        position: relative;
+        min-width: 0;
+        border: 1px solid var(--pb-line);
+        border-radius: 24px;
+        padding: clamp(16px, 2.8vw, 28px);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(247, 250, 251, 0.97));
+        box-shadow: var(--pb-shadow);
+      }
+
+      #pb-explainer .figure-panel::before {
+        content: "";
+        position: absolute;
+        inset: 24px 12% auto 12%;
+        height: 44%;
+        background: radial-gradient(circle at 50% 18%, rgba(13, 125, 136, 0.06), transparent 58%);
+        pointer-events: none;
+      }
+
+      #pb-explainer .figure-meta,
+      #pb-explainer .diagram-shell {
+        position: relative;
+        z-index: 1;
+      }
+
+      #pb-explainer .figure-head {
+        max-width: 28rem;
+      }
+
+      #pb-explainer .figure-head h3 {
+        margin-top: 10px;
+        font-family: var(--pb-serif);
+        font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      #pb-explainer .figure-head p {
+        margin-top: 12px;
+        color: var(--pb-muted);
+        font-size: 0.95rem;
+        line-height: 1.72;
+      }
+
+      #pb-explainer .diagram-shell {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--pb-line);
+      }
+
+      #pb-explainer .diagram {
+        overflow: visible;
+      }
+
+      #pb-explainer .diagram text {
+        font-family: var(--pb-sans);
+      }
+
+      #pb-explainer .connector {
+        fill: none;
+        stroke: var(--pb-figure-ink);
+        stroke-width: 1.25;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        marker-end: url(#pb-arrowhead);
+        opacity: 0.72;
+      }
+
+      #pb-explainer .connector.is-active {
+        marker-end: url(#pb-arrowhead-active);
+      }
+
+      #pb-explainer .node {
+        opacity: 0.96;
+      }
+
+      #pb-explainer .node-card,
+      #pb-explainer .node-anchor,
+      #pb-explainer .node-stem,
+      #pb-explainer .core-disc,
+      #pb-explainer .core-orbit {
+        transition:
+          fill var(--pb-motion-base) var(--pb-ease-soft),
+          stroke var(--pb-motion-base) var(--pb-ease-soft),
+          opacity var(--pb-motion-base) var(--pb-ease-soft);
+      }
+
+      #pb-explainer .node-card {
+        fill: rgba(255, 255, 255, 0.94);
+        stroke: rgba(199, 216, 221, 0.98);
+        stroke-width: 1.15;
+      }
+
+      #pb-explainer .node-anchor {
+        fill: #ffffff;
+        stroke: rgba(199, 216, 221, 0.98);
+        stroke-width: 1.18;
+      }
+
+      #pb-explainer .node-stem {
+        fill: none;
+        stroke: rgba(199, 216, 221, 0.96);
+        stroke-width: 1.12;
+      }
+
+      #pb-explainer .core-orbit {
+        fill: none;
+        stroke: rgba(13, 125, 136, 0.16);
+        stroke-width: 1.15;
+      }
+
+      #pb-explainer .core-disc {
+        fill: rgba(13, 125, 136, 0.055);
+        stroke: rgba(13, 125, 136, 0.42);
+        stroke-width: 1.28;
+      }
+
+      #pb-explainer .node-kicker {
+        fill: var(--pb-muted);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      #pb-explainer .node-title {
+        fill: var(--pb-text);
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+      }
+
+      #pb-explainer .node-core .node-title {
+        font-size: 28px;
+      }
+
+      #pb-explainer .node-copy {
+        fill: var(--pb-muted);
+        font-size: 12px;
+      }
+
+      #pb-explainer .figure-legend {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--pb-line);
+      }
+
+      #pb-explainer .figure-legend h4 {
+        margin-top: 8px;
+        font-family: var(--pb-serif);
+        font-size: 1.04rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      #pb-explainer .figure-legend p {
+        max-width: 26rem;
+        margin-top: 10px;
+        color: var(--pb-muted);
+        font-size: 0.92rem;
+        line-height: 1.76;
+      }
+
+      #pb-explainer .figure-source {
+        max-width: 26rem;
+        margin-top: 14px;
+        color: var(--pb-muted);
+        font-size: 0.82rem;
+        line-height: 1.68;
+      }
+
+      #pb-explainer #figure-title,
+      #pb-explainer #figure-summary,
+      #pb-explainer #legend-title,
+      #pb-explainer #legend-body {
+        transition:
+          opacity var(--pb-motion-base) var(--pb-ease-soft),
+          transform var(--pb-motion-base) var(--pb-ease-soft);
+        will-change: opacity, transform;
+      }
+
+      #pb-explainer.is-copy-updating #figure-title,
+      #pb-explainer.is-copy-updating #figure-summary,
+      #pb-explainer.is-copy-updating #legend-title,
+      #pb-explainer.is-copy-updating #legend-body {
+        opacity: 0.28;
+        transform: translateY(3px);
+      }
+
+      #pb-explainer.is-enhanced .section-copy {
+        opacity: 0.64;
+        transform: translateY(6px);
+        transition:
+          opacity var(--pb-motion-base) var(--pb-ease-soft),
+          transform var(--pb-motion-base) var(--pb-ease-soft);
+      }
+
+      #pb-explainer.is-enhanced .section.is-active .section-copy {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      #pb-explainer.is-enhanced .connector,
+      #pb-explainer.is-enhanced .node {
+        transition:
+          opacity var(--pb-motion-base) var(--pb-ease-soft),
+          fill var(--pb-motion-base) var(--pb-ease-soft),
+          stroke var(--pb-motion-base) var(--pb-ease-soft);
+      }
+
+      #pb-explainer.is-enhanced .connector {
+        opacity: 0.24;
+      }
+
+      #pb-explainer.is-enhanced .connector.is-related {
+        opacity: 0.5;
+      }
+
+      #pb-explainer.is-enhanced .connector.is-active {
+        opacity: 0.92;
+        stroke: var(--pb-accent-strong);
+      }
+
+      #pb-explainer.is-enhanced .node {
+        opacity: 0.36;
+      }
+
+      #pb-explainer.is-enhanced .node.is-related {
+        opacity: 0.68;
+      }
+
+      #pb-explainer.is-enhanced .node.is-active {
+        opacity: 1;
+      }
+
+      #pb-explainer.is-enhanced .node.is-active .node-card,
+      #pb-explainer.is-enhanced .node.is-active .node-anchor,
+      #pb-explainer.is-enhanced .node.is-active .node-stem {
+        stroke: var(--pb-accent-strong);
+      }
+
+      #pb-explainer.is-enhanced .node-core.is-active .core-disc {
+        fill: rgba(13, 125, 136, 0.08);
+        stroke: var(--pb-accent-strong);
+      }
+
+      #pb-explainer.is-enhanced .node-core.is-active .core-orbit {
+        stroke: rgba(13, 125, 136, 0.28);
+      }
+
+      #pb-explainer[data-context="embed"] {
+        padding-inline: clamp(12px, 3vw, 22px);
+      }
+
+      #pb-explainer[data-context="embed"] .hero {
+        padding-top: clamp(24px, 4vw, 38px);
+      }
+
+      #pb-explainer[data-context="embed"] .figure-panel {
+        border-radius: 20px;
+      }
+
+      #pb-explainer[data-context="embed"] .section {
+        padding-block: clamp(30px, 5vw, 46px);
+      }
+
+      @media (min-width: 1080px) {
+        #pb-explainer[data-layout="sticky"] .stage {
+          grid-template-columns: minmax(0, 0.86fr) minmax(360px, 1fr);
+        }
+
+        #pb-explainer[data-layout="sticky"] .figure-column {
+          position: sticky;
+          top: 24px;
+          order: 0;
+        }
+
+        #pb-explainer[data-layout="sticky"] .section {
+          min-height: clamp(24rem, 66vh, 40rem);
+          padding: clamp(66px, 10vh, 112px) 0;
+        }
+
+        #pb-explainer[data-layout="sticky"] .section:first-child {
+          padding-top: clamp(20px, 4vh, 32px);
+        }
+      }
+
+      @media (max-width: 1079px) {
+        #pb-explainer .stage {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        #pb-explainer .hero h1 {
+          max-width: none;
+          font-size: clamp(2.8rem, 14vw, 4.2rem);
+        }
+
+        #pb-explainer .section h2,
+        #pb-explainer .figure-head h3 {
+          font-size: clamp(1.8rem, 10vw, 2.45rem);
+        }
+
+        #pb-explainer .step-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #pb-explainer .step-pill {
+          width: 100%;
+        }
+
+        #pb-explainer .node-title {
+          font-size: 18px;
+        }
+
+        #pb-explainer .node-core .node-title {
+          font-size: 24px;
+        }
+      }
+
+      @media (max-width: 420px) {
+        #pb-explainer .step-list {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #pb-explainer .step-pill,
+        #pb-explainer .section-copy,
+        #pb-explainer .connector,
+        #pb-explainer .node,
+        #pb-explainer .node-card,
+        #pb-explainer .node-anchor,
+        #pb-explainer .node-stem,
+        #pb-explainer .core-disc,
+        #pb-explainer .core-orbit {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="pb-explainer" data-context="standalone" data-layout="stacked">
+      <header class="hero">
+        <p class="eyebrow">Architecture explainer</p>
+        <h1>Pocket Brain</h1>
+        <p class="hero-copy">
+          Pocket Brain is a personal AI device, a physical companion designed to run on hardware
+          you own, with privacy and continuity built in from the start. It learns you over time
+          and stays with you, instead of living as a disposable cloud session.
+        </p>
+        <p class="hero-audience">
+          For people who want a personal AI that belongs to them, not a platform.
+        </p>
+      </header>
+
+      <section class="stage-shell" aria-label="Pocket Brain architecture explainer">
+        <nav class="step-nav" aria-label="Explainer sections">
+          <ul class="step-list">
+            <li><a class="step-pill is-active" data-step-link="device" href="#section-device" aria-current="step">01 Device</a></li>
+            <li><a class="step-pill" data-step-link="continuity" href="#section-continuity">02 Continuity</a></li>
+            <li><a class="step-pill" data-step-link="inference" href="#section-inference">03 Inference</a></li>
+            <li><a class="step-pill" data-step-link="core" href="#section-core">04 Core</a></li>
+          </ul>
+        </nav>
+
+        <div class="stage">
+          <div class="sections">
+            <article class="section is-active" id="section-device" data-step="device" tabindex="-1">
+              <div class="section-copy">
+                <p class="section-index">01 / Device -> Pocket Brain</p>
+                <h2>Pocket Brain begins on a device you carry.</h2>
+                <p>
+                  Pocket Brain is a physical device you own and keep near you. It is the local
+                  point of contact: a personal object encountered in everyday life, not a remote
+                  service.
+                </p>
+              </div>
+            </article>
+
+            <article class="section" id="section-continuity" data-step="continuity" tabindex="-1">
+              <div class="section-copy">
+                <p class="section-index">02 / Continuity Layer -> Pocket Brain</p>
+                <h2>Continuity keeps the same system alive over time.</h2>
+                <p>
+                  A personal system should survive breakage, upgrades, migration, and return.
+                  Pocket Brain preserves the memory and learned context that make it yours, so you
+                  do not reset to zero or start from scratch when hardware changes.
+                </p>
+              </div>
+            </article>
+
+            <article class="section" id="section-inference" data-step="inference" tabindex="-1">
+              <div class="section-copy">
+                <p class="section-index">03 / Inference -> Pocket Brain</p>
+                <h2>Inference stays close to the person using it.</h2>
+                <p>
+                  Pocket Brain processes voice, text, and contextual input close to the device, so
+                  intelligence stays near the user instead of depending on a remote service by
+                  default. It listens, reads, and reasons without turning every interaction into a
+                  round trip somewhere else.
+                </p>
+              </div>
+            </article>
+
+            <article class="section" id="section-core" data-step="core" tabindex="-1">
+              <div class="section-copy">
+                <p class="section-index">04 / Pocket Brain Core</p>
+                <h2>The core binds device, memory, and intelligence together.</h2>
+                <p>
+                  The core is the durable structure that binds device, continuity, and inference
+                  into one personal system. It is what makes Pocket Brain feel like a coherent
+                  companion instead of a collection of separate features, one that stays with you
+                  and learns you over time.
+                </p>
+              </div>
+            </article>
+          </div>
+
+          <aside class="figure-column" aria-label="Pocket Brain architecture figure">
+            <div class="figure-panel">
+              <div class="figure-meta">
+                <div class="figure-head">
+                  <p class="figure-label">Figure 1</p>
+                  <h3 id="figure-title">Pocket Brain architecture, shown as one personal system.</h3>
+                  <p id="figure-summary">
+                    Device, continuity, and inference stay attached to one durable core. Scroll or
+                    use the section links to move through the same sequence.
+                  </p>
+                </div>
+              </div>
+
+              <div class="diagram-shell">
+                <svg
+                  class="diagram"
+                  viewBox="0 0 760 720"
+                  role="img"
+                  aria-labelledby="diagram-title-svg diagram-desc-svg"
+                >
+                  <title id="diagram-title-svg">Pocket Brain architecture figure</title>
+                  <desc id="diagram-desc-svg">
+                    A semantic architecture diagram with Device, Continuity Layer, and Inference
+                    connected to the Pocket Brain core.
+                  </desc>
+
+                  <defs>
+                    <marker
+                      id="pb-arrowhead"
+                      markerWidth="12"
+                      markerHeight="12"
+                      refX="9"
+                      refY="5"
+                      orient="auto"
+                      markerUnits="strokeWidth"
+                    >
+                      <path d="M0 0L9 5L0 10" fill="none" stroke="rgba(22, 36, 42, 0.24)" stroke-width="1.15"></path>
+                    </marker>
+                    <marker
+                      id="pb-arrowhead-active"
+                      markerWidth="12"
+                      markerHeight="12"
+                      refX="9"
+                      refY="5"
+                      orient="auto"
+                      markerUnits="strokeWidth"
+                    >
+                      <path d="M0 0L9 5L0 10" fill="none" stroke="rgba(13, 125, 136, 0.8)" stroke-width="1.15"></path>
+                    </marker>
+                  </defs>
+
+                  <path
+                    class="connector is-active"
+                    data-role="connector"
+                    data-connector="device-core"
+                    d="M198 272C240 261 272 265 289 284"
+                  ></path>
+
+                  <path
+                    class="connector"
+                    data-role="connector"
+                    data-connector="continuity-core"
+                    d="M292 528C316 482 334 438 331 409"
+                  ></path>
+
+                  <path
+                    class="connector"
+                    data-role="connector"
+                    data-connector="inference-core"
+                    d="M468 528C444 482 426 438 429 409"
+                  ></path>
+
+                  <g class="node node-device is-active" data-role="node" data-node="device">
+                    <rect class="node-card" x="18" y="231" width="164" height="82" rx="16"></rect>
+                    <path class="node-stem" d="M182 272C188 272 193 272 198 272"></path>
+                    <text class="node-kicker" x="34" y="255">Point of contact</text>
+                    <text class="node-title" x="34" y="283">Device</text>
+                    <text class="node-copy" x="34" y="305">Physical interface</text>
+                  </g>
+
+                  <g class="node node-core is-active" data-role="node" data-node="core">
+                    <circle class="core-orbit" cx="380" cy="308" r="112"></circle>
+                    <circle class="core-disc" cx="380" cy="308" r="90"></circle>
+                    <text class="node-kicker" x="380" y="284" text-anchor="middle">Personal AI system</text>
+                    <text class="node-title" x="380" y="321" text-anchor="middle">Pocket Brain</text>
+                    <text class="node-copy" x="380" y="348" text-anchor="middle">Durable core</text>
+                  </g>
+
+                  <g class="node" data-role="node" data-node="continuity">
+                    <rect class="node-card" x="164" y="528" width="212" height="92" rx="18"></rect>
+                    <text class="node-kicker" x="270" y="562" text-anchor="middle">State across time</text>
+                    <text class="node-title" x="270" y="590" text-anchor="middle">Continuity Layer</text>
+                    <text class="node-copy" x="270" y="610" text-anchor="middle">Persistent state</text>
+                  </g>
+
+                  <g class="node" data-role="node" data-node="inference">
+                    <rect class="node-card" x="384" y="528" width="212" height="92" rx="18"></rect>
+                    <text class="node-kicker" x="490" y="562" text-anchor="middle">Voice, text, context</text>
+                    <text class="node-title" x="490" y="590" text-anchor="middle">Inference</text>
+                    <text class="node-copy" x="490" y="610" text-anchor="middle">Nearby inference</text>
+                  </g>
+                </svg>
+
+                <div class="figure-legend">
+                  <p class="legend-label">Figure note</p>
+                  <h4 id="legend-title">Device</h4>
+                  <p id="legend-body">
+                    The device is the physical point of contact. It keeps Pocket Brain present on
+                    hardware you own.
+                  </p>
+                </div>
+
+                <p class="figure-source">
+                  The diagram condenses the architecture into one view: device, continuity, and
+                  inference all remain attached to the same durable core.
+                </p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        let explainer = null;
+
+        try {
+          document.documentElement.classList.remove("no-js");
+          document.documentElement.classList.add("js");
+
+          explainer = document.getElementById("pb-explainer");
+          if (!explainer) return;
+
+          explainer.classList.add("is-enhanced");
+
+          const figureTitle = document.getElementById("figure-title");
+          const figureSummary = document.getElementById("figure-summary");
+          const legendTitle = document.getElementById("legend-title");
+          const legendBody = document.getElementById("legend-body");
+
+          const sections = Array.from(explainer.querySelectorAll(".section"));
+          const stepLinks = Array.from(explainer.querySelectorAll("[data-step-link]"));
+
+          const nodes = Object.fromEntries(
+            Array.from(explainer.querySelectorAll("[data-node]")).map(function (element) {
+              return [element.dataset.node, element];
+            })
+          );
+
+          const connectors = Object.fromEntries(
+            Array.from(explainer.querySelectorAll("[data-connector]")).map(function (element) {
+              return [element.dataset.connector, element];
+            })
+          );
+
+          const stateMap = {
+            device: {
+              title: "Device and core, shown as one local point of contact.",
+              summary:
+                "The device-to-core path shows where Pocket Brain is encountered: on a physical device the person carries and uses.",
+              legendTitle: "Device",
+              legendBody:
+                "The device is the physical point of contact. It keeps Pocket Brain present on hardware you own.",
+              activeNodes: ["device", "core"],
+              relatedNodes: ["continuity", "inference"],
+              activeConnectors: ["device-core"],
+              relatedConnectors: ["continuity-core", "inference-core"]
+            },
+            continuity: {
+              title: "Continuity preserves the same system over time.",
+              summary:
+                "The lower-left layer carries memory and learned context through repair, upgrade, migration, and return.",
+              legendTitle: "Continuity Layer",
+              legendBody:
+                "Continuity preserves the memory and learned context that make Pocket Brain yours, so you do not start from scratch.",
+              activeNodes: ["continuity", "core"],
+              relatedNodes: ["device", "inference"],
+              activeConnectors: ["continuity-core"],
+              relatedConnectors: ["device-core", "inference-core"]
+            },
+            inference: {
+              title: "Inference stays close to the system it serves.",
+              summary:
+                "The lower-right layer handles voice, text, and contextual input near the device, keeping intelligence close by default.",
+              legendTitle: "Inference",
+              legendBody:
+                "Inference lets Pocket Brain listen, read, and reason without sending every interaction away first.",
+              activeNodes: ["inference", "core"],
+              relatedNodes: ["device", "continuity"],
+              activeConnectors: ["inference-core"],
+              relatedConnectors: ["device-core", "continuity-core"]
+            },
+            core: {
+              title: "Pocket Brain binds the whole system together.",
+              summary:
+                "In the final state, device, continuity, and inference remain distinct, but the core turns them into one coherent companion.",
+              legendTitle: "Pocket Brain Core",
+              legendBody:
+                "Pocket Brain is the durable center that binds device, memory, and intelligence into one continuous personal system.",
+              activeNodes: ["core"],
+              relatedNodes: ["device", "continuity", "inference"],
+              activeConnectors: ["device-core", "continuity-core", "inference-core"],
+              relatedConnectors: []
+            }
+          };
+
+          let activeStep = "";
+          let observer = null;
+          let usingScrollFallback = false;
+          let copySwapTimer = null;
+          let resizeTimer = null;
+
+          const prefersReducedMotion =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+          function inIframe() {
+            return window.self !== window.top;
+          }
+
+          function stickyIsSafe() {
+            return (
+              typeof CSS !== "undefined" &&
+              typeof CSS.supports === "function" &&
+              CSS.supports("position", "sticky") &&
+              !inIframe() &&
+              window.innerWidth >= 1080 &&
+              window.innerHeight >= 780
+            );
+          }
+
+          function notifyParentHeight() {
+            if (!inIframe() || !window.parent || window.parent === window) return;
+
+            window.parent.postMessage(
+              {
+                type: "pb-explainer:height",
+                height: Math.max(
+                  document.documentElement.scrollHeight,
+                  document.body ? document.body.scrollHeight : 0
+                )
+              },
+              "*"
+            );
+          }
+
+          function syncContext() {
+            explainer.dataset.context = inIframe() ? "embed" : "standalone";
+            explainer.dataset.layout = stickyIsSafe() ? "sticky" : "stacked";
+          }
+
+          function clearFigureClasses() {
+            Object.keys(nodes).forEach(function (key) {
+              nodes[key].classList.remove("is-active", "is-related");
+            });
+
+            Object.keys(connectors).forEach(function (key) {
+              connectors[key].classList.remove("is-active", "is-related");
+            });
+          }
+
+          function syncStepLinks(stepKey) {
+            stepLinks.forEach(function (link) {
+              const isActive = link.dataset.stepLink === stepKey;
+              link.classList.toggle("is-active", isActive);
+              if (isActive) {
+                link.setAttribute("aria-current", "step");
+              } else {
+                link.removeAttribute("aria-current");
+              }
+            });
+          }
+
+          function syncSections(stepKey) {
+            sections.forEach(function (section) {
+              section.classList.toggle("is-active", section.dataset.step === stepKey);
+            });
+          }
+
+          function applyFigureCopy(state) {
+            figureTitle.textContent = state.title;
+            figureSummary.textContent = state.summary;
+            legendTitle.textContent = state.legendTitle;
+            legendBody.textContent = state.legendBody;
+          }
+
+          function syncFigureCopy(state, immediate) {
+            window.clearTimeout(copySwapTimer);
+
+            if (immediate || prefersReducedMotion) {
+              explainer.classList.remove("is-copy-updating");
+              applyFigureCopy(state);
+              return;
+            }
+
+            explainer.classList.add("is-copy-updating");
+
+            copySwapTimer = window.setTimeout(function () {
+              applyFigureCopy(state);
+              window.requestAnimationFrame(function () {
+                explainer.classList.remove("is-copy-updating");
+                notifyParentHeight();
+              });
+            }, 120);
+          }
+
+          function applyState(stepKey) {
+            const state = stateMap[stepKey];
+            if (!state || activeStep === stepKey) {
+              syncStepLinks(stepKey || activeStep);
+              syncSections(stepKey || activeStep);
+              return;
+            }
+
+            const immediateFigureCopy = activeStep === "";
+            activeStep = stepKey;
+
+            syncFigureCopy(state, immediateFigureCopy);
+
+            clearFigureClasses();
+
+            state.activeNodes.forEach(function (key) {
+              if (nodes[key]) nodes[key].classList.add("is-active");
+            });
+
+            state.relatedNodes.forEach(function (key) {
+              if (nodes[key]) nodes[key].classList.add("is-related");
+            });
+
+            state.activeConnectors.forEach(function (key) {
+              if (connectors[key]) connectors[key].classList.add("is-active");
+            });
+
+            state.relatedConnectors.forEach(function (key) {
+              if (connectors[key]) connectors[key].classList.add("is-related");
+            });
+
+            syncStepLinks(stepKey);
+            syncSections(stepKey);
+            notifyParentHeight();
+          }
+
+          function stepFromHash() {
+            const hash = window.location.hash.replace(/^#/, "");
+            if (!hash) return null;
+
+            const match = sections.find(function (section) {
+              return section.id === hash;
+            });
+
+            return match ? match.dataset.step : null;
+          }
+
+          function nearestStep() {
+            const focusLine = explainer.dataset.layout === "sticky" ? window.innerHeight * 0.4 : window.innerHeight * 0.28;
+            let bestSection = sections[0];
+            let bestDistance = Infinity;
+
+            sections.forEach(function (section) {
+              const rect = section.getBoundingClientRect();
+              const sectionCenter = rect.top + Math.min(rect.height, window.innerHeight * 0.7) * 0.5;
+              const distance = Math.abs(sectionCenter - focusLine);
+
+              if (distance < bestDistance) {
+                bestDistance = distance;
+                bestSection = section;
+              }
+            });
+
+            return bestSection ? bestSection.dataset.step : "device";
+          }
+
+          function applyVisibleStep() {
+            applyState(nearestStep());
+          }
+
+          function onScrollFallback() {
+            if (!usingScrollFallback) return;
+
+            window.requestAnimationFrame(function () {
+              applyVisibleStep();
+            });
+          }
+
+          function bindObserver() {
+            if (observer) {
+              observer.disconnect();
+              observer = null;
+            }
+
+            if ("IntersectionObserver" in window) {
+              observer = new IntersectionObserver(
+                function (entries) {
+                  const visibleEntries = entries
+                    .filter(function (entry) {
+                      return entry.isIntersecting;
+                    })
+                    .sort(function (left, right) {
+                      return right.intersectionRatio - left.intersectionRatio;
+                    });
+
+                  if (!visibleEntries.length) return;
+                  applyState(visibleEntries[0].target.dataset.step);
+                },
+                {
+                  threshold: [0.25, 0.5, 0.75],
+                  rootMargin:
+                    explainer.dataset.layout === "sticky" ? "-18% 0px -28% 0px" : "-12% 0px -56% 0px"
+                }
+              );
+
+              sections.forEach(function (section) {
+                observer.observe(section);
+              });
+
+              usingScrollFallback = false;
+              window.removeEventListener("scroll", onScrollFallback);
+              return;
+            }
+
+            usingScrollFallback = true;
+            window.addEventListener("scroll", onScrollFallback, { passive: true });
+          }
+
+          function handleResize() {
+            window.clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(function () {
+              syncContext();
+              bindObserver();
+              applyVisibleStep();
+              notifyParentHeight();
+            }, 120);
+          }
+
+          stepLinks.forEach(function (link) {
+            link.addEventListener("click", function () {
+              applyState(link.dataset.stepLink);
+            });
+          });
+
+          sections.forEach(function (section) {
+            section.addEventListener("focusin", function () {
+              applyState(section.dataset.step);
+            });
+          });
+
+          window.addEventListener("hashchange", function () {
+            const hashStep = stepFromHash();
+            if (hashStep) applyState(hashStep);
+          });
+
+          window.addEventListener("resize", handleResize);
+          window.addEventListener("load", notifyParentHeight);
+
+          syncContext();
+          bindObserver();
+
+          const initialStep = stepFromHash() || "device";
+          applyState(initialStep);
+
+          if ((!observer || prefersReducedMotion) && !stepFromHash()) {
+            applyVisibleStep();
+          }
+
+          notifyParentHeight();
+        } catch (error) {
+          if (explainer) {
+            explainer.classList.remove("is-enhanced");
+          }
+
+          window.console && window.console.warn && window.console.warn("Pocket Brain explainer enhancement failed.", error);
+        }
+      })();
+    </script>
+  </body>
+</html>
